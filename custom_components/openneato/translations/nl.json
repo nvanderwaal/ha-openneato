@@ -1,0 +1,37 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "OpenNeato-robot toevoegen",
+        "description": "Vul het IP-adres of de hostnaam in van een Neato-robot met OpenNeato-firmware.",
+        "data": { "host": "Host" },
+        "data_description": { "host": "Bijvoorbeeld 192.168.1.50. Geef de robot een vast IP-adres in je router." }
+      },
+      "reconfigure": {
+        "title": "Adres van de robot wijzigen",
+        "data": { "host": "Host" }
+      }
+    },
+    "error": {
+      "cannot_connect": "De robot is niet bereikbaar. Controleer het adres en of de robot wakker is en met wifi verbonden.",
+      "not_openneato": "Er antwoordt een apparaat, maar het draait geen OpenNeato.",
+      "unknown": "Onverwachte fout, zie de logs."
+    },
+    "abort": {
+      "already_configured": "Deze robot is al toegevoegd.",
+      "reconfigure_successful": "Het adres is bijgewerkt.",
+      "wrong_robot": "Dat adres hoort bij een andere robot."
+    }
+  },
+  "entity": {
+    "binary_sensor": { "docked": { "name": "Op dock" } },
+    "button": { "clear_errors": { "name": "Fouten wissen" } },
+    "sensor": {
+      "battery_voltage": { "name": "Batterijspanning" },
+      "message": { "name": "Melding" },
+      "robot_state": { "name": "Robotstatus" },
+      "wifi_signal": { "name": "Wifi-signaal" },
+      "uptime": { "name": "Uptime" }
+    }
+  }
+}

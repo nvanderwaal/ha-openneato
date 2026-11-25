@@ -1,0 +1,12 @@
+{
+  "domain": "openneato",
+  "name": "OpenNeato",
+  "codeowners": ["@nvanderwaal"],
+  "config_flow": true,
+  "documentation": "https://github.com/nvanderwaal/ha-openneato",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/nvanderwaal/ha-openneato/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}
