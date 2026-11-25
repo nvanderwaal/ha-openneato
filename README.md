@@ -12,6 +12,8 @@ Home Assistant talks directly to the robot's HTTP API on your network.
   (cleaning / paused / returning / docked / idle / error)
 - **Sensors**: battery, message (error/warning text), robot state; diagnostic sensors
   for battery voltage, Wi-Fi signal and uptime (disabled by default)
+- **Last clean** (from `/api/history`): start and end time, duration, area, distance,
+  battery used, errors during the clean
 - **Binary sensors**: charging, docked, problem
 - **Buttons**: clear errors, restart robot
 - UI setup (config flow) and re-configure if the robot's IP changes
@@ -50,6 +52,9 @@ Reports for other models are welcome. Please open an issue.
 
 The integration polls `/api/state`, `/api/charger`, `/api/error` and `/api/system` every
 15 seconds and sends commands with `POST /api/clean?action=house|spot|pause|stop|dock`.
+The cleaning history (`/api/history`) is read at start-up, right after a clean finishes,
+and otherwise every 15 minutes. Corrupt history entries, which some firmware versions
+occasionally write, are skipped instead of breaking the whole list.
 
 ## License
 

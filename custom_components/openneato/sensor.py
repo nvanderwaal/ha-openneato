@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -14,6 +15,8 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.const import (
     PERCENTAGE,
+    UnitOfArea,
+    UnitOfLength,
     SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
     EntityCategory,
     UnitOfElectricPotential,
@@ -32,6 +35,24 @@ PARALLEL_UPDATES = 0
 @dataclass(frozen=True, kw_only=True)
 class OpenNeatoSensorDescription(SensorEntityDescription):
     value_fn: Callable[[OpenNeatoData], Any]
+
+
+def _last(key: str) -> Callable[[OpenNeatoData], Any]:
+    return lambda d: (d.last_clean or {}).get(key)
+
+
+def _last_time(key: str) -> Callable[[OpenNeatoData], datetime | None]:
+    def fn(d: OpenNeatoData) -> datetime | None:
+        ts = (d.last_clean or {}).get(key)
+        return datetime.fromtimestamp(ts, UTC) if ts else None
+    return fn
+
+
+def _battery_used(d: OpenNeatoData) -> int | None:
+    lc = d.last_clean or {}
+    if lc.get("batteryStart") is None or lc.get("batteryEnd") is None:
+        return None
+    return lc["batteryStart"] - lc["batteryEnd"]
 
 
 def _message(d: OpenNeatoData) -> str | None:
@@ -62,6 +83,55 @@ SENSORS: tuple[OpenNeatoSensorDescription, ...] = (
         key="message",
         translation_key="message",
         value_fn=_message,
+    ),
+    OpenNeatoSensorDescription(
+        key="last_clean_start",
+        translation_key="last_clean_start",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        value_fn=_last_time("start"),
+    ),
+    OpenNeatoSensorDescription(
+        key="last_clean_end",
+        translation_key="last_clean_end",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        value_fn=_last_time("time"),
+    ),
+    OpenNeatoSensorDescription(
+        key="last_clean_duration",
+        translation_key="last_clean_duration",
+        device_class=SensorDeviceClass.DURATION,
+        native_unit_of_measurement=UnitOfTime.SECONDS,
+        suggested_unit_of_measurement=UnitOfTime.MINUTES,
+        suggested_display_precision=0,
+        value_fn=_last("duration"),
+    ),
+    OpenNeatoSensorDescription(
+        key="last_clean_area",
+        translation_key="last_clean_area",
+        device_class=SensorDeviceClass.AREA,
+        native_unit_of_measurement=UnitOfArea.SQUARE_METERS,
+        suggested_display_precision=1,
+        value_fn=_last("areaCovered"),
+    ),
+    OpenNeatoSensorDescription(
+        key="last_clean_distance",
+        translation_key="last_clean_distance",
+        device_class=SensorDeviceClass.DISTANCE,
+        native_unit_of_measurement=UnitOfLength.METERS,
+        suggested_display_precision=0,
+        value_fn=_last("distanceTraveled"),
+    ),
+    OpenNeatoSensorDescription(
+        key="last_clean_battery_used",
+        translation_key="last_clean_battery_used",
+        native_unit_of_measurement=PERCENTAGE,
+        value_fn=_battery_used,
+    ),
+    OpenNeatoSensorDescription(
+        key="last_clean_errors",
+        translation_key="last_clean_errors",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=_last("errorsDuringClean"),
     ),
     OpenNeatoSensorDescription(
         key="robot_state",

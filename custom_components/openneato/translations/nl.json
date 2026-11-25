@@ -4,12 +4,18 @@
       "user": {
         "title": "OpenNeato-robot toevoegen",
         "description": "Vul het IP-adres of de hostnaam in van een Neato-robot met OpenNeato-firmware.",
-        "data": { "host": "Host" },
-        "data_description": { "host": "Bijvoorbeeld 192.168.1.50. Geef de robot een vast IP-adres in je router." }
+        "data": {
+          "host": "Host"
+        },
+        "data_description": {
+          "host": "Bijvoorbeeld 192.168.1.50. Geef de robot een vast IP-adres in je router."
+        }
       },
       "reconfigure": {
         "title": "Adres van de robot wijzigen",
-        "data": { "host": "Host" }
+        "data": {
+          "host": "Host"
+        }
       }
     },
     "error": {
@@ -24,14 +30,53 @@
     }
   },
   "entity": {
-    "binary_sensor": { "docked": { "name": "Op dock" } },
-    "button": { "clear_errors": { "name": "Fouten wissen" } },
+    "binary_sensor": {
+      "docked": {
+        "name": "Op dock"
+      }
+    },
+    "button": {
+      "clear_errors": {
+        "name": "Fouten wissen"
+      }
+    },
     "sensor": {
-      "battery_voltage": { "name": "Batterijspanning" },
-      "message": { "name": "Melding" },
-      "robot_state": { "name": "Robotstatus" },
-      "wifi_signal": { "name": "Wifi-signaal" },
-      "uptime": { "name": "Uptime" }
+      "battery_voltage": {
+        "name": "Batterijspanning"
+      },
+      "message": {
+        "name": "Melding"
+      },
+      "robot_state": {
+        "name": "Robotstatus"
+      },
+      "wifi_signal": {
+        "name": "Wifi-signaal"
+      },
+      "uptime": {
+        "name": "Uptime"
+      },
+      "last_clean_start": {
+        "name": "Laatste schoonmaak gestart"
+      },
+      "last_clean_end": {
+        "name": "Laatste schoonmaak klaar"
+      },
+      "last_clean_duration": {
+        "name": "Duur laatste schoonmaak"
+      },
+      "last_clean_area": {
+        "name": "Oppervlak laatste schoonmaak"
+      },
+      "last_clean_distance": {
+        "name": "Afstand laatste schoonmaak"
+      },
+      "last_clean_battery_used": {
+        "name": "Batterijverbruik laatste schoonmaak"
+      },
+      "last_clean_errors": {
+        "name": "Fouten laatste schoonmaak"
+      }
     }
   }
 }

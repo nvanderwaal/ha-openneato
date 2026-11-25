@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+import json
+import re
 from dataclasses import dataclass
 from typing import Any
 
@@ -43,6 +45,7 @@ class OpenNeatoData:
     charger: dict[str, Any]
     error: dict[str, Any]
     system: dict[str, Any]
+    last_clean: dict[str, Any] | None = None
 
     @property
     def ui_state(self) -> str:
@@ -51,6 +54,30 @@ class OpenNeatoData:
     @property
     def robot_state(self) -> str:
         return str(self.state.get("robotState") or "")
+
+
+def parse_history(text: str) -> list[dict[str, Any]]:
+    """Parse /api/history, tolerating corrupt entries.
+
+    Some firmware versions occasionally write a truncated session summary, which
+    makes the whole response invalid JSON. Fall back to decoding entry by entry
+    and skip the ones that are broken.
+    """
+    try:
+        data = json.loads(text)
+        return [i for i in data if isinstance(i, dict)] if isinstance(data, list) else []
+    except ValueError:
+        pass
+    decoder = json.JSONDecoder()
+    items: list[dict[str, Any]] = []
+    for match in re.finditer(r'\{"name":', text):
+        try:
+            obj, _ = decoder.raw_decode(text, match.start())
+        except ValueError:
+            continue
+        if isinstance(obj, dict) and "name" in obj:
+            items.append(obj)
+    return items
 
 
 class OpenNeatoClient:
@@ -79,6 +106,16 @@ class OpenNeatoClient:
             raise
         except (aiohttp.ClientError, TimeoutError, ValueError) as err:
             raise OpenNeatoConnectionError(f"{method} {url} failed: {err}") from err
+
+    async def _get_text(self, path: str) -> str:
+        url = f"{self.base_url}{path}"
+        try:
+            async with asyncio.timeout(REQUEST_TIMEOUT * 2):
+                async with self._session.get(url) as resp:
+                    resp.raise_for_status()
+                    return await resp.text()
+        except (aiohttp.ClientError, TimeoutError) as err:
+            raise OpenNeatoConnectionError(f"GET {url} failed: {err}") from err
 
     async def get(self, path: str) -> dict[str, Any]:
         data = await self._request("GET", path)
@@ -119,6 +156,24 @@ class OpenNeatoClient:
             self.get("/api/system"),
         )
         return OpenNeatoData(state=state, charger=charger, error=error, system=system)
+
+    async def async_get_last_clean(self) -> dict[str, Any] | None:
+        """Return the newest finished cleaning session from /api/history.
+
+        Each item has a "session" (start) and, once finished, a "summary" block.
+        The list is not guaranteed to be sorted.
+        """
+        items = parse_history(await self._get_text("/api/history"))
+        finished = [
+            i for i in items
+            if isinstance(i, dict) and not i.get("recording") and isinstance(i.get("summary"), dict)
+        ]
+        if not finished:
+            return None
+        newest = max(finished, key=lambda i: (i.get("session") or {}).get("time") or 0)
+        summary = dict(newest["summary"])
+        summary["start"] = (newest.get("session") or {}).get("time")
+        return summary
 
     async def clean(self, action: str) -> None:
         """action: house, spot, pause, stop, dock."""
