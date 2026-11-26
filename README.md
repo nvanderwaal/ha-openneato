@@ -32,6 +32,10 @@ Home Assistant talks directly to the robot's HTTP API on your network.
 
 ### HACS (recommended)
 
+[![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=nvanderwaal&repository=ha-openneato&category=integration)
+
+Click the button above, or add the repository by hand:
+
 1. HACS → ⋮ → **Custom repositories** → add `https://github.com/nvanderwaal/ha-openneato`, category **Integration**.
 2. Install **OpenNeato** and restart Home Assistant.
 
@@ -41,7 +45,9 @@ Copy `custom_components/openneato` into your Home Assistant `config/custom_compo
 
 ## Setup
 
-**Settings → Devices & services → Add integration → OpenNeato**, then enter the robot's IP address.
+[![Open your Home Assistant instance and start setting up OpenNeato.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=openneato)
+
+Click the button above, or go to **Settings → Devices & services → Add integration → OpenNeato**, then enter the robot's IP address.
 
 ## Tested with
 
