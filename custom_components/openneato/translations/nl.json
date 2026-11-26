@@ -87,6 +87,11 @@
       "map_session": {
         "name": "Kaart: schoonmaak"
       }
+    },
+    "update": {
+      "firmware": {
+        "name": "Firmware"
+      }
     }
   }
 }

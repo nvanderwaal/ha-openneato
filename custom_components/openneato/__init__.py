@@ -19,6 +19,7 @@ PLATFORMS: list[Platform] = [
     Platform.IMAGE,
     Platform.SELECT,
     Platform.SENSOR,
+    Platform.UPDATE,
     Platform.VACUUM,
 ]
 

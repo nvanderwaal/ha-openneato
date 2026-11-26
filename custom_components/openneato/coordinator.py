@@ -27,6 +27,8 @@ from .const import (
     MAP_DOWNLOADS_PER_UPDATE,
     REFRESH_AFTER_COMMAND,
     SCAN_INTERVAL,
+    SCAN_INTERVAL_IDLE,
+    SYSTEM_INTERVAL,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -51,13 +53,15 @@ class OpenNeatoCoordinator(DataUpdateCoordinator[OpenNeatoData]):
             _LOGGER,
             config_entry=entry,
             name=f"{DOMAIN} {info.hostname}",
-            update_interval=SCAN_INTERVAL,
+            update_interval=SCAN_INTERVAL_IDLE,
         )
         self.client = client
         self.info = info
         self._last_clean: dict | None = None
         self._history_fetched = 0.0
         self._was_cleaning = False
+        self._system: dict | None = None
+        self._system_fetched = 0.0
         self.maps = MapStore(Path(hass.config.path(DOMAIN, info.unique_id)))
         self.map_index: dict[int, dict] = {}
         # Start time of the map picked in the select entity; None follows the newest.
@@ -105,16 +109,26 @@ class OpenNeatoCoordinator(DataUpdateCoordinator[OpenNeatoData]):
         return len(missing) > MAP_DOWNLOADS_PER_UPDATE
 
     async def _async_update_data(self) -> OpenNeatoData:
+        cached_system = (
+            self._system
+            if time.monotonic() - self._system_fetched < SYSTEM_INTERVAL
+            else None
+        )
         try:
-            data = await self.client.async_get_data()
+            data = await self.client.async_get_data(cached_system)
         except OpenNeatoError as err:
             raise UpdateFailed(str(err)) from err
+        if cached_system is None:
+            self._system = data.system
+            self._system_fetched = time.monotonic()
 
         # History is heavier and only changes when a clean ends: fetch it at start-up,
         # right after a clean finishes, and otherwise every HISTORY_INTERVAL (20 min).
         cleaning = "CLEANING" in data.ui_state or "DOCKING" in data.ui_state
         just_finished = self._was_cleaning and not cleaning
         self._was_cleaning = cleaning
+        # Fast polling while cleaning, paused or returning; slow on the dock or idle.
+        self.update_interval = SCAN_INTERVAL if cleaning else SCAN_INTERVAL_IDLE
         if just_finished or time.monotonic() - self._history_fetched > HISTORY_INTERVAL:
             try:
                 items = await self.client.async_get_history()

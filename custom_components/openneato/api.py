@@ -15,6 +15,7 @@ REQUEST_TIMEOUT = 10
 # The ESP32 web server occasionally sends a garbled or duplicated response.
 # One quick retry hides that from the user.
 RETRY_DELAY = 0.5
+FIRMWARE_UPLOAD_TIMEOUT = 180
 
 
 class OpenNeatoError(Exception):
@@ -225,12 +226,14 @@ class OpenNeatoClient:
             serial=parts[0] if parts else None,
         )
 
-    async def async_get_data(self) -> OpenNeatoData:
+    async def async_get_data(self, system: dict[str, Any] | None = None) -> OpenNeatoData:
+        """Poll the robot. Pass a cached /api/system result to skip that request."""
         # Sequential on purpose: the ESP32 copes badly with parallel connections.
         state = await self.get("/api/state")
         charger = await self.get("/api/charger")
         error = await self.get("/api/error")
-        system = await self.get("/api/system")
+        if system is None:
+            system = await self.get("/api/system")
         return OpenNeatoData(state=state, charger=charger, error=error, system=system)
 
     async def async_get_history(self) -> list[dict[str, Any]]:
@@ -240,6 +243,23 @@ class OpenNeatoClient:
     async def async_get_session(self, name: str) -> CleanSession:
         """Download one recorded session (JSON lines) by file name."""
         return parse_session(await self._get_text(f"/api/history/{quote(name)}"))
+
+    async def async_upload_firmware(self, firmware: bytes, md5: str, filename: str) -> None:
+        """OTA: upload a firmware image. The robot verifies the MD5 and reboots."""
+        form = aiohttp.FormData()
+        form.add_field("file", firmware, filename=filename, content_type="application/octet-stream")
+        url = f"{self.base_url}/api/firmware/update?hash={md5}"
+        try:
+            async with asyncio.timeout(FIRMWARE_UPLOAD_TIMEOUT):
+                async with self._session.post(url, data=form) as resp:
+                    if resp.status != 200:
+                        raise OpenNeatoError(
+                            f"Firmware update rejected ({resp.status}): {(await resp.text())[:200]}"
+                        )
+        except OpenNeatoError:
+            raise
+        except (aiohttp.ClientError, TimeoutError) as err:
+            raise OpenNeatoConnectionError(f"Firmware upload failed: {err}") from err
 
     async def clean(self, action: str) -> None:
         """action: house, spot, pause, stop, dock."""

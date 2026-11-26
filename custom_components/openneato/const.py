@@ -4,7 +4,11 @@ from datetime import timedelta
 
 DOMAIN = "openneato"
 MANUFACTURER = "Neato Robotics (OpenNeato firmware)"
+# Polling adapts to what the robot is doing: fast while it is active, slow on the dock.
 SCAN_INTERVAL = timedelta(seconds=15)
+SCAN_INTERVAL_IDLE = timedelta(seconds=60)
+# /api/system only feeds diagnostic sensors (Wi-Fi signal, uptime); seconds.
+SYSTEM_INTERVAL = 5 * 60
 # Faster polling right after a command, so the UI reflects the change quickly.
 REFRESH_AFTER_COMMAND = 3
 # Cleaning history only changes when a clean ends. It is fetched right after each clean
@@ -14,3 +18,6 @@ HISTORY_INTERVAL = 20 * 60
 HISTORY_RETRY = 60
 # At most this many session tracks are downloaded per update, to spare the ESP32.
 MAP_DOWNLOADS_PER_UPDATE = 3
+# Firmware updates: releases are checked on GitHub this often.
+FIRMWARE_REPO = "renjfk/OpenNeato"
+FIRMWARE_CHECK_INTERVAL = timedelta(hours=6)

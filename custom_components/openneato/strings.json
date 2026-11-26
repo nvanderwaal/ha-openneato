@@ -87,6 +87,11 @@
       "map_session": {
         "name": "Map: clean"
       }
+    },
+    "update": {
+      "firmware": {
+        "name": "Firmware"
+      }
     }
   }
 }
