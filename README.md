@@ -85,6 +85,9 @@ cards:
       - type: select-options
 ```
 
+<img width="562" height="701" alt="image" src="https://github.com/user-attachments/assets/25527fe1-827c-4b30-a46e-003570085d88" />
+
+
 ## License
 
 MIT
