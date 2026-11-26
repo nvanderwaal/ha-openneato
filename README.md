@@ -112,31 +112,6 @@ cards:
 
 <img width="562" height="701" alt="image" src="https://github.com/user-attachments/assets/25527fe1-827c-4b30-a46e-003570085d88" />
 
-### Latest clean in one card
-
-The map image entity carries the stats of the clean it shows as attributes
-(`start`, `duration_min`, `area_m2`, `distance_m`, `battery_used`, `errors`),
-so a single Markdown card can show the map with its numbers:
-
-```yaml
-type: markdown
-content: |
-  {%- set a = states.image.<robot>_map.attributes -%}
-  {%- if a.start -%}
-  ### Last clean
-  {{ as_local(as_datetime(a.start)).strftime('%a %d %b, %H:%M') }}
-
-  <img src="{{ a.entity_picture }}" width="100%">
-
-  <ha-icon icon="mdi:timer-outline"></ha-icon> {{ a.duration_min }} min &nbsp;
-  <ha-icon icon="mdi:texture-box"></ha-icon> {{ a.area_m2 }} m² &nbsp;
-  <ha-icon icon="mdi:map-marker-distance"></ha-icon> {{ a.distance_m | round(0) | int }} m &nbsp;
-  <ha-icon icon="mdi:battery-arrow-down-outline"></ha-icon> {{ a.battery_used }}%
-  {%- else -%}
-  No map yet. It appears after the first clean.
-  {%- endif -%}
-```
-
 ## Removing
 
 **Settings → Devices & services → OpenNeato → ⋮ → Delete.** The archived maps in
