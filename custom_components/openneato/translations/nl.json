@@ -77,6 +77,16 @@
       "last_clean_errors": {
         "name": "Fouten laatste schoonmaak"
       }
+    },
+    "image": {
+      "map": {
+        "name": "Kaart"
+      }
+    },
+    "select": {
+      "map_session": {
+        "name": "Kaart: schoonmaak"
+      }
     }
   }
 }

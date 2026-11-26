@@ -14,6 +14,9 @@ Home Assistant talks directly to the robot's HTTP API on your network.
   for battery voltage, Wi-Fi signal and uptime (disabled by default)
 - **Last clean** (from `/api/history`): start and end time, duration, area, distance,
   battery used, errors during the clean
+- **Cleaning map**: an image entity that draws the route of a clean (coloured from start to
+  end) with the covered area, dock and end point, plus a select entity to browse earlier
+  cleans. Tracks are archived in Home Assistant, so they outlive the robot's own history.
 - **Binary sensors**: charging, docked, problem
 - **Buttons**: clear errors, restart robot
 - UI setup (config flow) and re-configure if the robot's IP changes
@@ -55,6 +58,28 @@ The integration polls `/api/state`, `/api/charger`, `/api/error` and `/api/syste
 The cleaning history (`/api/history`) is read at start-up, right after a clean finishes,
 and otherwise every 15 minutes. Corrupt history entries, which some firmware versions
 occasionally write, are skipped instead of breaking the whole list.
+
+Each finished clean's track (`/api/history/<session>`) is downloaded once, a few per
+update so the ESP32 isn't flooded, and stored in `<config>/openneato/<robot id>/` (newest
+100 kept, included in Home Assistant backups, deleted when the robot is removed). The map
+is rendered as SVG in Home Assistant, so the robot does no extra work.
+The positions come from wheel odometry, which drifts during a clean: room shapes are
+recognisable, but the map is not a precise floor plan.
+
+### Map card example
+
+```yaml
+type: vertical-stack
+cards:
+  - type: picture-entity
+    entity: image.jeffrey_map
+    show_name: false
+    show_state: false
+  - type: tile
+    entity: select.jeffrey_map_clean
+    features:
+      - type: select-options
+```
 
 ## License
 

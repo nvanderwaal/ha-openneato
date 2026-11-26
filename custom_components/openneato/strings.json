@@ -77,6 +77,16 @@
       "last_clean_errors": {
         "name": "Last clean errors"
       }
+    },
+    "image": {
+      "map": {
+        "name": "Map"
+      }
+    },
+    "select": {
+      "map_session": {
+        "name": "Map: clean"
+      }
     }
   }
 }

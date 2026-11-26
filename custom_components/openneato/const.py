@@ -9,3 +9,5 @@ SCAN_INTERVAL = timedelta(seconds=15)
 REFRESH_AFTER_COMMAND = 3
 # Cleaning history is refreshed after each clean and otherwise this often (seconds).
 HISTORY_INTERVAL = 15 * 60
+# At most this many session tracks are downloaded per update, to spare the ESP32.
+MAP_DOWNLOADS_PER_UPDATE = 3

@@ -5,13 +5,28 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
+from pathlib import Path
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .api import OpenNeatoClient, OpenNeatoData, OpenNeatoError, OpenNeatoInfo
-from .const import DOMAIN, HISTORY_INTERVAL, REFRESH_AFTER_COMMAND, SCAN_INTERVAL
+from .api import (
+    OpenNeatoClient,
+    OpenNeatoData,
+    OpenNeatoError,
+    OpenNeatoInfo,
+    finished_sessions,
+    last_clean,
+)
+from .maps import MapStore, StoredMap
+from .const import (
+    DOMAIN,
+    HISTORY_INTERVAL,
+    MAP_DOWNLOADS_PER_UPDATE,
+    REFRESH_AFTER_COMMAND,
+    SCAN_INTERVAL,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -42,6 +57,51 @@ class OpenNeatoCoordinator(DataUpdateCoordinator[OpenNeatoData]):
         self._last_clean: dict | None = None
         self._history_fetched = 0.0
         self._was_cleaning = False
+        self.maps = MapStore(Path(hass.config.path(DOMAIN, info.unique_id)))
+        self.map_index: dict[int, dict] = {}
+        # Start time of the map picked in the select entity; None follows the newest.
+        self.selected_map: int | None = None
+        self._bad_sessions: set[str] = set()
+
+    async def async_load_maps(self) -> None:
+        self.map_index = dict(await self.hass.async_add_executor_job(self.maps.load_index))
+
+    @property
+    def shown_map(self) -> int | None:
+        if self.selected_map in self.map_index:
+            return self.selected_map
+        return max(self.map_index, default=None)
+
+    async def async_get_map(self, start: int) -> StoredMap | None:
+        return await self.hass.async_add_executor_job(self.maps.load, start)
+
+    def select_map(self, start: int | None) -> None:
+        self.selected_map = start
+        self.async_update_listeners()
+
+    async def _async_sync_maps(self, items: list[dict]) -> bool:
+        """Download finished sessions that are not archived yet. Returns True if more remain."""
+        missing = [
+            i for i in finished_sessions(items)
+            if int(i["session"]["time"]) not in self.map_index and i.get("name")
+            and i["name"] not in self._bad_sessions
+        ]
+        newest_before = max(self.map_index, default=None)
+        for item in missing[:MAP_DOWNLOADS_PER_UPDATE]:
+            session = await self.client.async_get_session(item["name"])
+            if session.summary is None:
+                session.summary = item.get("summary")
+            if not session.session:
+                session.session = item["session"]
+            start = await self.hass.async_add_executor_job(self.maps.save, session)
+            if start is None:
+                self._bad_sessions.add(item["name"])
+                continue
+            self.map_index = dict(await self.hass.async_add_executor_job(self.maps.load_index))
+        # A new clean arrived: jump back to showing the newest map.
+        if max(self.map_index, default=None) != newest_before:
+            self.selected_map = None
+        return len(missing) > MAP_DOWNLOADS_PER_UPDATE
 
     async def _async_update_data(self) -> OpenNeatoData:
         try:
@@ -56,8 +116,12 @@ class OpenNeatoCoordinator(DataUpdateCoordinator[OpenNeatoData]):
         self._was_cleaning = cleaning
         if just_finished or time.monotonic() - self._history_fetched > HISTORY_INTERVAL:
             try:
-                self._last_clean = await self.client.async_get_last_clean()
+                items = await self.client.async_get_history()
+                self._last_clean = last_clean(items)
                 self._history_fetched = time.monotonic()
+                if await self._async_sync_maps(items):
+                    # More tracks to download: come back in about a minute.
+                    self._history_fetched = time.monotonic() - HISTORY_INTERVAL + 60
             except OpenNeatoError as err:
                 # Non-critical: keep the previous value and retry in about a minute.
                 self._history_fetched = time.monotonic() - HISTORY_INTERVAL + 60
