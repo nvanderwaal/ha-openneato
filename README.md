@@ -45,9 +45,7 @@ Copy `custom_components/openneato` into your Home Assistant `config/custom_compo
 
 ## Setup
 
-[![Open your Home Assistant instance and start setting up OpenNeato.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=openneato)
-
-Click the button above, or go to **Settings → Devices & services → Add integration → OpenNeato**, then enter the robot's IP address.
+Go to **Settings → Devices & services → Add integration → OpenNeato**, then enter the robot's IP address.
 
 ## Tested with
 
