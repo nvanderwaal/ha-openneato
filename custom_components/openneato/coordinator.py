@@ -23,6 +23,7 @@ from .maps import MapStore, StoredMap
 from .const import (
     DOMAIN,
     HISTORY_INTERVAL,
+    HISTORY_RETRY,
     MAP_DOWNLOADS_PER_UPDATE,
     REFRESH_AFTER_COMMAND,
     SCAN_INTERVAL,
@@ -110,7 +111,7 @@ class OpenNeatoCoordinator(DataUpdateCoordinator[OpenNeatoData]):
             raise UpdateFailed(str(err)) from err
 
         # History is heavier and only changes when a clean ends: fetch it at start-up,
-        # right after a clean finishes, and otherwise every HISTORY_INTERVAL.
+        # right after a clean finishes, and otherwise every HISTORY_INTERVAL (20 min).
         cleaning = "CLEANING" in data.ui_state or "DOCKING" in data.ui_state
         just_finished = self._was_cleaning and not cleaning
         self._was_cleaning = cleaning
@@ -119,12 +120,15 @@ class OpenNeatoCoordinator(DataUpdateCoordinator[OpenNeatoData]):
                 items = await self.client.async_get_history()
                 self._last_clean = last_clean(items)
                 self._history_fetched = time.monotonic()
-                if await self._async_sync_maps(items):
-                    # More tracks to download: come back in about a minute.
-                    self._history_fetched = time.monotonic() - HISTORY_INTERVAL + 60
+                more = await self._async_sync_maps(items)
+                # Robot not cleaning but a session still marked recording: it is
+                # still writing the summary. Also retry when tracks remain to download.
+                writing = not cleaning and any(i.get("recording") for i in items)
+                if more or writing:
+                    self._history_fetched = time.monotonic() - HISTORY_INTERVAL + HISTORY_RETRY
             except OpenNeatoError as err:
                 # Non-critical: keep the previous value and retry in about a minute.
-                self._history_fetched = time.monotonic() - HISTORY_INTERVAL + 60
+                self._history_fetched = time.monotonic() - HISTORY_INTERVAL + HISTORY_RETRY
                 _LOGGER.debug("Could not fetch history: %s", err)
         data.last_clean = self._last_clean
         return data

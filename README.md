@@ -56,7 +56,7 @@ Reports for other models are welcome. Please open an issue.
 The integration polls `/api/state`, `/api/charger`, `/api/error` and `/api/system` every
 15 seconds and sends commands with `POST /api/clean?action=house|spot|pause|stop|dock`.
 The cleaning history (`/api/history`) is read at start-up, right after a clean finishes,
-and otherwise every 15 minutes. Corrupt history entries, which some firmware versions
+and otherwise every 20 minutes as a safety net. Corrupt history entries, which some firmware versions
 occasionally write, are skipped instead of breaking the whole list.
 
 Each finished clean's track (`/api/history/<session>`) is downloaded once, a few per
